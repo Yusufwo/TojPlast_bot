@@ -1,25 +1,26 @@
+from dotenv import load_dotenv
+load_dotenv()
+
+
 import os
-import nest_asyncio
 from telegram.ext import (
     Application, CommandHandler, MessageHandler, filters, ConversationHandler
 )
-from telegram import Update
-from fastapi import FastAPI, Request
-
 from bot_logic import (
     start, choose_language, select_type, select_diameter,
     select_sn, ask_length, cancel,
     CHOOSE_LANG, SELECT_TYPE, SELECT_DIAMETER, SELECT_SN, ASK_LENGTH
 )
 
-nest_asyncio.apply()
-
-TOKEN = os.getenv("BOT_TOKEN") or "8135113589:AAGco0L8W1JTGnhOhGD_oMp6cRrhfc21_2s"  # желательно не писать токен прямо
-WEBHOOK_PATH = "/webhook"
-WEBHOOK_URL = f"https://tojplast-bot.onrender.com{WEBHOOK_PATH}"
+TOKEN = os.getenv("BOT_TOKEN")
+WEBHOOK_HOST = 'https://tojplast-bot.onrender.com'
+WEBHOOK_PATH = '/webhook'
+WEBHOOK_URL = f"{WEBHOOK_HOST}{WEBHOOK_PATH}"
+PORT = int(os.environ.get('PORT', 10000))
 
 application = Application.builder().token(TOKEN).build()
 
+# Обработчики состояний
 conv_handler = ConversationHandler(
     entry_points=[CommandHandler("start", start)],
     states={
@@ -31,26 +32,12 @@ conv_handler = ConversationHandler(
     },
     fallbacks=[CommandHandler("cancel", cancel)],
 )
+
 application.add_handler(conv_handler)
 
-fastapi_app = FastAPI()
-
-@fastapi_app.on_event("startup")
-async def on_startup():
-    await application.initialize()
-    await application.bot.set_webhook(WEBHOOK_URL)
-    print(f"🚀 Webhook установлен: {WEBHOOK_URL}")
-
-@fastapi_app.post(WEBHOOK_PATH)
-async def handle_webhook(request: Request):
-    data = await request.json()
-    update = Update.de_json(data, application.bot)
-    await application.process_update(update)
-    return {"ok": True}
-
-
-import uvicorn
-
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
-    uvicorn.run("main:fastapi_app", host="0.0.0.0", port=port)
+if __name__ == '__main__':
+    application.run_webhook(
+        listen="0.0.0.0",
+        port=PORT,
+        webhook_url=WEBHOOK_URL
+    )
