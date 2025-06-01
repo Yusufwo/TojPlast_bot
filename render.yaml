@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: truba-bot
+    env: python
+    buildCommand: ""
+    startCommand: python bot.py
+    envVars:
+      - key: BOT_TOKEN
+        value: 8135113589:AAGco0L8W1JTGnhOhGD_oMp6cRrhfc21_2s
