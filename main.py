@@ -1,13 +1,10 @@
 import os
-import logging
+import nest_asyncio
 from telegram.ext import (
-    Application, CommandHandler, MessageHandler, filters,
-    ConversationHandler
+    Application, CommandHandler, MessageHandler, filters, ConversationHandler
 )
 from telegram import Update
 from fastapi import FastAPI, Request
-import nest_asyncio
-import asyncio
 
 from bot_logic import (
     start, choose_language, select_type, select_diameter,
@@ -15,9 +12,9 @@ from bot_logic import (
     CHOOSE_LANG, SELECT_TYPE, SELECT_DIAMETER, SELECT_SN, ASK_LENGTH
 )
 
-nest_asyncio.apply()  # Важно для работы внутри FastAPI на Render
+nest_asyncio.apply()
 
-TOKEN = os.getenv("BOT_TOKEN") or "8135113589:AAGco0L8W1JTGnhOhGD_oMp6cRrhfc21_2s"
+TOKEN = os.getenv("BOT_TOKEN") or "8135113589:AAGco0L8W1JTGnhOhGD_oMp6cRrhfc21_2s"  # желательно не писать токен прямо
 WEBHOOK_PATH = "/webhook"
 WEBHOOK_URL = f"https://tojplast-bot.onrender.com{WEBHOOK_PATH}"
 
@@ -34,19 +31,15 @@ conv_handler = ConversationHandler(
     },
     fallbacks=[CommandHandler("cancel", cancel)],
 )
-
 application.add_handler(conv_handler)
 
 fastapi_app = FastAPI()
 
-
 @fastapi_app.on_event("startup")
 async def on_startup():
     await application.initialize()
-    await application.bot.delete_webhook()
     await application.bot.set_webhook(WEBHOOK_URL)
-    print(f"🚀 Webhook set to {WEBHOOK_URL}")
-
+    print(f"🚀 Webhook установлен: {WEBHOOK_URL}")
 
 @fastapi_app.post(WEBHOOK_PATH)
 async def handle_webhook(request: Request):
@@ -54,9 +47,3 @@ async def handle_webhook(request: Request):
     update = Update.de_json(data, application.bot)
     await application.process_update(update)
     return {"ok": True}
-
-
-# Локальный запуск только для теста (удалить, если не используешь)
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("main:fastapi_app", host="0.0.0.0", port=int(os.environ.get("PORT", 8000)))
